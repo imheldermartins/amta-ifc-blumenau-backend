@@ -1,7 +1,5 @@
-class UserModel {
-    constructor() {
-        console.log("classe UserModel inicializada.");
-    }
-}
+import { Model } from "@/database/model.js";
+import type { UserSchema } from "@/database/schemas/user-schema.js";
 
-export default UserModel;
+const users = new Model<UserSchema>("users")
+export { users };
