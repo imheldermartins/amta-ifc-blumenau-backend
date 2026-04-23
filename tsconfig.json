@@ -44,9 +44,10 @@
 
     // Absolute Paths
     "paths": {
-      "@/*": ["./src/*"],
+      "@/*": ["./src/*.ts"],
       "@models/*": ["./src/models/*.ts"],
-      "@public/*": ["./public/*.ts"]
+      "@public/*": ["./public/*"],
+      "@database/*": ["./src/database/*.ts"]
     }
   }
 }

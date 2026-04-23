@@ -1,5 +1,5 @@
-import { parseSqlite } from "@/utils/parser-rqlite-response.js";
-import sendRequest from "@/utils/sendRequest.js";
+import { parseSqlite } from "@/utils/parser-rqlite-response";
+import sendRequest from "@/utils/sendRequest";
 
 const WORKSPACE_DB_API_URL = "http://localhost:4001";
 
