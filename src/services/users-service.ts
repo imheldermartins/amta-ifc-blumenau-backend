@@ -1,8 +1,44 @@
 import { db } from "@models/index";
 
 export async function getUser() {
-    await db.users.find(1).then(user => {
-
-        console.log(`UserService: ${user?.name}`)
-    })
+    // await db.users.find({ id: "1" })
+    await db.users.find({ email: "hylson@ifc.edu.br", name: "Hylson" })
+        // .then(console.log);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// await db.users.find({ email: "hylson@ifc.edu.br", name: "Hylson" })
+// db.users.find({
+//     email: "hylson"
+// })

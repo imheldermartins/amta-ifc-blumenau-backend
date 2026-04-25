@@ -1,5 +1,3 @@
-export interface UserSchema {
-    id: string;
-    name: string;
-    email: string;
-}
+import type { User } from "@/types/user-types";
+
+export interface UserSchema extends User {};
