@@ -1,5 +1,5 @@
 import { users } from "@models/user-model";
 
-export const db = {
+export default {
     users
 };

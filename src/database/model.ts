@@ -1,30 +1,45 @@
-type ModelLookupMethods = "where";
-type ModelLookup<T> = {
-  [K in ModelLookupMethods]?: Partial<T>;
-};
+import squel, {
+  type Squel
+} from "squel";
 
 export class Model<T> {
+
   private tableName: string;
+  private sql: Squel | null = null;
 
   constructor(tableName: string) {
+
     this.tableName = tableName;
   }
 
-  private setLookupStr(lookupsEntries: Partial<T>): string | null {
-    const entries = Object.entries(lookupsEntries ?? {});
-
-    const filters = entries.map(
-      ([key, val]) => `${this.tableName}.${key} = ${JSON.stringify(val).replace(/"/g, "'")}`,
-    );
-    return ` WHERE ${filters.join(" AND ")}`;
+  private initQuery(operation: 'execute' | 'query'): squel {
+    switch(operation) {
+      case 'query':
+        return squel.select().from(this.tableName);
+        break;
+      case 'execute':
+        return squel.table(this.tableName);
+        break;
+      default:
+        throw new Error(`Unsupported query operation: ${operation}`);
+        break;
+    }
   }
 
-  async find(conditionals: ModelLookup<T>): Promise<T | null> {
-    let lookupsStr = this.setLookupStr(conditionals.where!);
+  async find(lookups: Partial<T>): Promise<T | null> {
+    this.sql = this.initQuery('query');
 
-    const sql = `SELECT * FROM ${this.tableName}${lookupsStr}`;
-    console.log(`Executando: ${sql}`);
-    return null;
+    const entries = Object.entries(lookups);
+
+    if (entries.length === 0) return null;
+
+    entries.forEach(([key, value]) => {
+      const formattedValue = typeof value === 'string' ? `'${value}'` : value;
+      
+      this.sql.where(`${key} = ${formattedValue}`);
+    });
+
+    return this.sql.toString();
   }
 
   async findAll() {
