@@ -1,3 +1,8 @@
+type ModelLookupMethods = "where" | "like";
+type ModelLookup<T> = {
+  [K in ModelLookupMethods]?: Partial<T>;
+};
+
 export class Model<T> {
   private tableName: string;
 
@@ -5,19 +10,29 @@ export class Model<T> {
     this.tableName = tableName;
   }
 
-  async find(conditionals: Partial<T>): Promise<T | null> {
-    const entries = Object.entries(conditionals);
+  private setLookupStr(lookupsEntries: [string, Partial<T>][]): string | null {
+    if (!lookupsEntries) return null;
 
-    let whereConditional = "";
+    let lookupStr = "";
 
-    if (entries.length > 0) {
-      const filters = entries.map(
-        ([key, val]) => `${this.tableName}.${key} = ${JSON.stringify(val)}`,
+    lookupsEntries.forEach(([lookupKey, lookupValues]) => {
+      lookupKey = lookupKey.toUpperCase();
+
+      const filters = Object.entries(lookupValues ?? {}).map(
+        ([key, val]) => `${this.tableName}.${key} ${lookupKey === 'WHERE' ? '=' : 'AS'} ${JSON.stringify(val)}`,
       );
-      whereConditional = ` WHERE ${filters.join(" AND ")}`;
-    }
+      lookupStr += ` ${lookupKey} ${filters.join(" AND ")}`;
+    });
 
-    const sql = `SELECT * FROM ${this.tableName}${whereConditional}`;
+    return lookupStr;
+  }
+
+  async find(conditionals: ModelLookup<T>): Promise<T | null> {
+    const lookupsEntries = Object.entries(conditionals);
+
+    let lookupsStr = this.setLookupStr(lookupsEntries);
+
+    const sql = `SELECT * FROM ${this.tableName}${lookupsStr}`;
     console.log(`Executando: ${sql}`);
     return null;
   }

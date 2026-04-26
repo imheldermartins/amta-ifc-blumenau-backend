@@ -1,11 +1,11 @@
-import dbQuery from "@database/db-query";
+// import { dbQuery } from "@/database/shared";
 
-dbQuery<{ id: number; nome: string; }>('SELECT * FROM teste;')
-    .then(res => {
-        const row = res![0]!;
-        console.log(`Id: ${row.id} e Nome: ${row.nome}`);
-    });
+// dbQuery<{ id: number; nome: string; }>('SELECT * FROM teste;')
+//     .then(res => {
+//         const row = res![0]!;
+//         console.log(`Id: ${row.id} e Nome: ${row.nome}`);
+//     });
 
-// import { getUser } from "./services/users-service.js";
+import { getUser } from "./services/users-service.js";
 
-// getUser();
+getUser();
