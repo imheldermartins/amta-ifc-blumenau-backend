@@ -1,0 +1,1 @@
+type NonEmptyString = `${string}${string & { length: number }}` | `${any}${string}`;
