@@ -1,4 +1,3 @@
-import { parseSqlite } from "@/utils/parser-rqlite-response";
 import sendRequest from "@/utils/sendRequest";
 
 const WORKSPACE_DB_API_URL = "http://localhost:4001";
@@ -8,16 +7,14 @@ type Endpoint = 'query' | 'execute' | 'request';
 async function rqlite<T>(
   sqlQueries: string[], 
   endpoint: Endpoint
-): Promise<RqliteResponse['results'] | null> {
-  const response = await sendRequest<RqliteResponse>(
+): Promise<SQLResponse<T>> {
+  const response = await sendRequest<SQLResponse<T>>(
     "post",
-    `${WORKSPACE_DB_API_URL}/db/${endpoint}?pretty`,
+    `${WORKSPACE_DB_API_URL}/db/${endpoint}?pretty&associative`,
     [...sqlQueries],
   );
 
-  const results = response?.results;
-
-  return parseSqlite(results!);
+  return response as SQLResponse<T>;
 }
 
 /**
@@ -30,11 +27,29 @@ async function rqlite<T>(
  * @param sql : Comando SQL que será enviado para execução.
  */
 async function sql<T>(sql: string, endpoint: Endpoint = 'request'): Promise<T[] | null> {
-  const results = await rqlite([sql], endpoint) as T[];
+  
+  const errors: string[] = [];
+  const response = await rqlite<T>([sql], endpoint);
 
-  const rows = parseSqlite(results);
+  if (!(response?.results && Array.isArray(response?.results))) 
+    throw new Error('Results is invalid.', { cause: 'SQLERROR' })
+  
+  const [result] = (response.results).map(result => {
+      if ('error' in result) {
+        errors.push(result.error);
+        return null;
+      }
 
-  return rows as T[];
+      return result.rows as T[];
+    }).filter(Boolean);
+
+    if (errors.length > 0) {
+        throw new Error(errors.map(err => `[${err}]`).join('\n'), {
+            cause: 'SQLERROR'
+        })
+    }
+
+    return result!;
 }
 
 

@@ -20,8 +20,12 @@ export class Model<T> {
     return row as T;
   }
 
-  public async findAll(lookup: LookupsConfig<T>): Promise<T[] | null> {
-    return this.sql?.read(lookup) as any;
+  public async findAll(lookup?: LookupsConfig<T>): Promise<T[] | null> {
+    const raw = String(this.sql?.read(lookup));
+
+    const rows = await sql<T>(raw) as T[];
+
+    return rows;
   }
 
   public async update(data: DefaultValues<T>): Promise<T | null> {

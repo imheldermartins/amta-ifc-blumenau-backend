@@ -1,11 +1,4 @@
-// import { dbQuery } from "@/database/shared";
+import { getTeste, getTestes } from "@services/teste-service";
 
-// dbQuery<{ id: number; nome: string; }>('SELECT * FROM teste;')
-//     .then(res => {
-//         const row = res![0]!;
-//         console.log(`Id: ${row.id} e Nome: ${row.nome}`);
-//     });
-
-import { getUser } from "./services/users-service.js";
-
-getUser();
+getTeste();
+getTestes();

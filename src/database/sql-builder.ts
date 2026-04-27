@@ -46,10 +46,10 @@ export class SQLBuilder<T> {
     return String(this.sql?.toString());
   }
 
-  public read(lookup: LookupsConfig<T>): string {
+  public read(lookup?: LookupsConfig<T>): string {
     this.sql = squel.select().from(this.tableName);
 
-    if (Object.keys(lookup).filter(key => !(['where', 'limit'].includes(key))).length > 0) {
+    if (lookup && Object.keys(lookup).filter(key => !(['where', 'limit'].includes(key))).length > 0) {
       
       const tempLookup = { ...lookup };
       if ('where' in tempLookup) delete tempLookup.where;
@@ -69,7 +69,7 @@ export class SQLBuilder<T> {
 
     this.prepareLookupEntries(lookup?.where ?? {});
     
-    if (lookup.limit) this.sql.limit(lookup.limit);
+    if (lookup?.limit) this.sql.limit(lookup.limit);
 
     return String(this.sql?.toString());
   }

@@ -46,6 +46,7 @@
     "paths": {
       "@/*": ["./src/*.ts"],
       "@models/*": ["./src/models/*.ts"],
+      "@services/*": ["./src/services/*.ts"],
       "@public/*": ["./public/*"],
       "@database/*": ["./src/database/*.ts"]
     }

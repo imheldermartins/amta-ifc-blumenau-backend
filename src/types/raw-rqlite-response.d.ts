@@ -1,13 +1,10 @@
-type Column = string;
-type Types = "integer" | "text" | "blob";
-type Value = (number | string)[];
-
 type ErrorQuerying = { error: string; };
 
-type QueryResult = {
-    columns: Column[];
-    types: Types[];
-    values: Value[];
+type DBTypes = 'integer' | 'text';
+
+type QueryResult<T> = {
+    types: Record<keyof T, DBTypes>;
+    rows: T[];
 } | ErrorQuerying;
 
 type ExecuteResult = {
@@ -15,6 +12,6 @@ type ExecuteResult = {
 	rows_affected: number;
 } | ErrorQuerying;
 
-type RqliteResponse = {
-	results: Result[];
+type SQLResponse<T> = {
+	results: QueryResult<T>[];
 };
