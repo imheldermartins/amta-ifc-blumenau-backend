@@ -3,47 +3,52 @@ import db from "@models/index";
 const log = (str: any) => console.log(`SQL: ${str}`);
 
 export async function getUser() {
-  await db.users
-    .find({ 
-        email: "hylson@ifc.edu.br", 
-        name: "Hylson" 
-    })
-    .then(log);
-  
+  try {
     await db.users
-        .create({ 
-            email: "hylson@ifc.edu.br", 
-            name: "Hylson" 
-        })
-        .then(log);
-    
-    await db.users
-        .delete({ 
-            email: "hylson@ifc.edu.br", 
-            name: "Hylson" 
-        })
-        .then(log);
-    
-    await db.users
-        .update({
-            id: '1',
-            email: "hylson@ifc.edu.br", 
-            name: "Hylson" 
-        })
-        .then(log);
-    
-    await db.users
-        .findAll({ 
-            where: {
-                and: {
-                    email: 'hylson@gmail.com',
-                    id: '1'
-                },
-                or: {
-                    name: '%held%'
-                }
-            }
-        })
-        .then(log);
-}
+      .find({
+        id: "1",
+        email: "helder",
+      })
+      .then(log);
 
+    await db.users
+      .create({
+        email: "hylson@ifc.edu.br",
+        name: "Hylson",
+      })
+      .then(log);
+
+    await db.users
+      .delete({
+        email: "hylson@ifc.edu.br",
+        name: "Hylson",
+      })
+      .then(log);
+
+    await db.users
+      .update({
+        id: '1',
+        email: "hylson@ifc.edu.br",
+        name: "Hylson",
+      })
+      .then(log);
+
+    await db.users
+      .findAll({
+        where: {
+          and: {
+            email: "hylson@gmail.com",
+            id: "1",
+          },
+          or: {
+            name: "%held%",
+          },
+        },
+      })
+      .then(log);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(`[${error.cause}] ${error.message}`);
+    }
+  }
+}

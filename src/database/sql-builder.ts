@@ -8,8 +8,26 @@ export class SQLBuilder<T> {
     this.tableName = tableName;
   }
 
+  private sqlError(message: string) {
+    throw new Error(message, { cause: 'SQLERROR-MALFORMED' });
+  }
+
+  private prepareLookupEntries(conditionals: LookupWhere<T>) {
+    Object.entries(conditionals).forEach(([cKey, cValue]) => {
+      const filters = Object.entries(cValue ?? {}).map(([key, value]) => {
+        const lookupIsString = typeof value === "string";
+        const lookupSearch =
+          lookupIsString && value.includes("%") ? "LIKE" : "=";
+
+        return `${key} ${lookupSearch} ${lookupIsString ? `'${value}'` : value}`;
+      });
+
+      this.sql?.where(`${filters.join(` ${cKey} `)}`);
+    });
+  }
+
   public raw(): string {
-    if (!this.sql) throw new Error("SQL is not defined.");
+    if (!this.sql) this.sqlError("SQL is not defined.");
 
     return String(this.sql?.toString());
   }
@@ -19,7 +37,7 @@ export class SQLBuilder<T> {
 
     const entries = Object.entries(data);
 
-    if (entries.length === 0) throw new Error("Data missing.");
+    if (entries.length === 0) this.sqlError("Entries is empty. There is no lookups.");
 
     entries.forEach(([key, value]) => {
       this.sql?.set(key, value);
@@ -31,65 +49,56 @@ export class SQLBuilder<T> {
   public read(lookup: LookupsConfig<T>) {
     this.sql = squel.select().from(this.tableName);
 
-    const whereConditionals = lookup?.where;
-    if (whereConditionals) {
-      if (whereConditionals?.and) {
-        const filters = Object.entries(whereConditionals?.and).map(
-          ([key, value]) => {
-            const lookupIsString = typeof value === "string";
-            const lookupSearch =
-              lookupIsString && value.includes("%") ? "LIKE" : "=";
+    if (Object.keys(lookup).filter(key => !(['where', 'limit'].includes(key))).length > 0) {
+      
+      const tempLookup = { ...lookup };
+      if ('where' in tempLookup) delete tempLookup.where;
+      if ('limit' in tempLookup) delete tempLookup.limit;
 
-            return `${key} ${lookupSearch} ${lookupIsString ? `'${value}'` : value}`;
-          },
-        );
+      const entries = Object.entries(tempLookup);
 
-        this.sql?.where(`${filters.join(" AND ")}`);
-      }
+      if (entries.length === 0) return null;
 
-      if (whereConditionals?.or) {
-        const filters = Object.entries(whereConditionals?.or).map(
-          ([key, value]) => {
-            const lookupIsString = typeof value === "string";
-            const lookupSearch =
-              lookupIsString && value.includes("%") ? "LIKE" : "=";
-
-            return `${key} ${lookupSearch} ${lookupIsString ? `'${value}'` : value}`;
-          },
-        );
-
-        this.sql?.where(`${filters.join(" OR ")}`);
-      }
+      entries.forEach(([key, value]) => {
+        const formattedValue = typeof value === 'string' ? `'${value}'` : value;
+        
+        this.sql.where(`${key} = ${formattedValue}`);
+      });
     }
+
+    this.prepareLookupEntries(lookup?.where ?? {});
+    
+    if (lookup.limit) this.sql.limit(lookup.limit);
 
     return String(this.sql?.toString());
   }
 
-  public update(data: DefaultValues<T>) {
+  public update(data: LookupsConfig<T>) {
     this.sql = squel.update().table(this.tableName);
 
-    if (!data?.id)
-      throw new Error("Sensive batch operation not permitted, Id is missing!");
-
+    if (!data?.id && !data.where) this.sqlError('Missing Parameters');
+    
     const entries = Object.entries(data);
-
-    if (entries.length === 0) return null;
+    
+    if (entries.length === 0)
+      this.sqlError("Entries is empty. There is no lookups.");
 
     entries.forEach(([key, value]) => {
       this.sql?.set(key, value);
     });
 
-    this.sql.where("id", data.id);
+    this.sql?.where('id', data.id)
 
     return String(this.sql?.toString());
   }
 
-  public delete(lookup: Partial<T>) {
+  public delete(lookup: DefaultValues<T>) {
     this.sql = squel.delete().from(this.tableName);
 
     const entries = Object.entries(lookup);
 
-    if (entries.length === 0) return null;
+    if (entries.length === 0) 
+      this.sqlError('Missing Parameters');
 
     entries.forEach(([key, value]) => {
       const formattedValue = typeof value === "string" ? `'${value}'` : value;

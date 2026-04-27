@@ -18,7 +18,7 @@ function parseRuntimeValue(value: any, dbType: string): any {
     }
 }
 
-export function parseSqlite<T = Record<string, any>>(rawResults: RawResult['results']): T[] {
+export function parseSqlite<T = Record<string, any>>(rawResults: RqliteResponse['results']): T[] {
     const parsedRows: T[] = [];
 
     for (const resultBlock of rawResults) {
