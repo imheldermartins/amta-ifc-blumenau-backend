@@ -46,7 +46,7 @@ export class SQLBuilder<T> {
     return String(this.sql?.toString());
   }
 
-  public read(lookup: LookupsConfig<T>) {
+  public read(lookup: LookupsConfig<T>): string {
     this.sql = squel.select().from(this.tableName);
 
     if (Object.keys(lookup).filter(key => !(['where', 'limit'].includes(key))).length > 0) {
@@ -57,7 +57,8 @@ export class SQLBuilder<T> {
 
       const entries = Object.entries(tempLookup);
 
-      if (entries.length === 0) return null;
+      if (entries.length === 0)
+        this.sqlError("Entries is empty. There is no lookups.");
 
       entries.forEach(([key, value]) => {
         const formattedValue = typeof value === 'string' ? `'${value}'` : value;
@@ -73,7 +74,7 @@ export class SQLBuilder<T> {
     return String(this.sql?.toString());
   }
 
-  public update(data: LookupsConfig<T>) {
+  public update(data: LookupsConfig<T>): string {
     this.sql = squel.update().table(this.tableName);
 
     if (!data?.id && !data.where) this.sqlError('Missing Parameters');
@@ -92,7 +93,7 @@ export class SQLBuilder<T> {
     return String(this.sql?.toString());
   }
 
-  public delete(lookup: DefaultValues<T>) {
+  public delete(lookup: DefaultValues<T>): string {
     this.sql = squel.delete().from(this.tableName);
 
     const entries = Object.entries(lookup);

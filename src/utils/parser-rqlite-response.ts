@@ -18,29 +18,43 @@ function parseRuntimeValue(value: any, dbType: string): any {
     }
 }
 
-export function parseSqlite<T = Record<string, any>>(rawResults: RqliteResponse['results']): T[] {
+export function parseSqlite<T = Record<string, unknown>>(rawResults: RqliteResponse['results']): T[] {
+
+    /* QUESTÃO: Se uma falhar, todas falham? */
+    const errors: string[] = [];
+
     const parsedRows: T[] = [];
 
     for (const resultBlock of rawResults) {
-        // @ts-ignore
-        const { columns, types, values } = resultBlock!;
 
-        for (const row of values) {
-            const rowObject: Record<string, any> = {};
+        if (!resultBlock.error) {
+            const { columns, types, values } = resultBlock;
 
-            for (let i = 0; i < columns.length; i++) {
-                const columnName = columns[i] as string;
-                let rawValue = row[i];
-                
-                if (types && types[i]) {
-                    rawValue = parseRuntimeValue(rawValue, types[i] as string);
+            for (const row of values) {
+                const rowObject: Record<string, any> = {};
+
+                for (let i = 0; i < columns.length; i++) {
+                    const columnName = columns[i] as string;
+                    let rawValue = row[i];
+                    
+                    if (types && types[i]) {
+                        rawValue = parseRuntimeValue(rawValue, types[i] as string);
+                    }
+
+                    rowObject[columnName] = rawValue;
                 }
-
-                rowObject[columnName] = rawValue;
+                
+                parsedRows.push(rowObject as T);
             }
-            
-            parsedRows.push(rowObject as T);
+        } else {
+            errors.push(resultBlock.error);
         }
+    }
+
+    if (errors.length > 0) {
+        throw new Error(errors.filter(Boolean).map(err => `[${err}]`).join('\n'), {
+            cause: 'SQLERROR'
+        })
     }
 
     return parsedRows;

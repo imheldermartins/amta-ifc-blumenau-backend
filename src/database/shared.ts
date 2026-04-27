@@ -3,41 +3,39 @@ import sendRequest from "@/utils/sendRequest";
 
 const WORKSPACE_DB_API_URL = "http://localhost:4001";
 
-/**
- * Essa função será responsável apenas para requisições de leitura, ou seja, `SELECT`.
- * @param sql : Comando SQL que será enviado para execução.
- */
-async function dbQuery<T>(sql: string): Promise<T[] | null> {
-  const response = await sendRequest<RawResult>(
+type Endpoint = 'query' | 'execute' | 'request';
+
+async function rqlite<T>(
+  sqlQueries: string[], 
+  endpoint: Endpoint
+): Promise<RqliteResponse['results'] | null> {
+  const response = await sendRequest<RqliteResponse>(
     "post",
-    `${WORKSPACE_DB_API_URL}/db/query?pretty`,
-    [sql],
+    `${WORKSPACE_DB_API_URL}/db/${endpoint}?pretty`,
+    [...sqlQueries],
   );
 
-  if (!response) throw new Error();
+  const results = response?.results;
 
-  const rows = parseSqlite(response.results);
+  return parseSqlite(results!);
+}
+
+/**
+ * @example Query: 
+ *  Essa função será responsável apenas para requisições de leitura, ou seja, `SELECT`.
+ * @example Execute: 
+ *  Essa função será responsável apenas para requisições de escrita, ou seja, `CREATE | INSERT | UPDATE | ALTER, etc`.
+ * @example Request: 
+ *  Essa função será responsável apenas para requisições de leitura e escrita.
+ * @param sql : Comando SQL que será enviado para execução.
+ */
+async function sql<T>(sql: string, endpoint: Endpoint = 'request'): Promise<T[] | null> {
+  const results = await rqlite([sql], endpoint) as T[];
+
+  const rows = parseSqlite(results);
 
   return rows as T[];
 }
 
-/**
- * Essa função será responsável por operações de escrita, como:
- * @example`CREATE` | `INSERT` | `UPDATE` | `ALTER`, etc.
- * @param sql : Comando SQL que será enviado para execução.
- */
-async function dbExecute<T>(sql: string): Promise<T[] | null> {
-  const response = await sendRequest<RawResult>(
-    "post",
-    `${WORKSPACE_DB_API_URL}/db/query?pretty`,
-    [sql],
-  );
 
-  if (!response) throw new Error();
-
-  const rows = parseSqlite(response.results);
-
-  return rows as T[];
-}
-
-export { dbQuery, dbExecute };
+export default sql;

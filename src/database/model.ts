@@ -1,4 +1,5 @@
 import { SQLBuilder } from "@database/sql-builder";
+import sql from "@database/shared";
 
 export class Model<T> {
   private sql: SQLBuilder<T> | null = null;
@@ -12,7 +13,11 @@ export class Model<T> {
   }
 
   public async find(lookup: DefaultValues<T>): Promise<T | null> {
-    return this.sql?.read({ ...lookup, limit: 1 }) as any;
+    const raw = String(this.sql?.read({ ...lookup, limit: 1 }));
+
+    const [row] = await sql<T>(raw) as T[];
+
+    return row as T;
   }
 
   public async findAll(lookup: LookupsConfig<T>): Promise<T[] | null> {
