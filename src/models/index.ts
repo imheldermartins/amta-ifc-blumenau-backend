@@ -1,7 +1,7 @@
 import { users } from "@models/user-model";
-import { teste } from "./teste-model.js";
+import { workspaces } from "@models/workspace-model";
 
 export default {
     users,
-    teste
+    workspaces
 };

@@ -9,10 +9,9 @@
     // See also https://aka.ms/tsconfig/module
     "module": "nodenext",
     "target": "esnext",
-    "types": [],
     // For nodejs:
     // "lib": ["esnext"],
-    // "types": ["node"],
+    "types": ["node"],
     // and npm install -D @types/node
 
     // Other Outputs
@@ -42,13 +41,17 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
 
+    // Active decorators
+    "experimentalDecorators": true,
+
     // Absolute Paths
     "paths": {
       "@/*": ["./src/*.ts"],
       "@models/*": ["./src/models/*.ts"],
       "@services/*": ["./src/services/*.ts"],
       "@public/*": ["./public/*"],
-      "@database/*": ["./src/database/*.ts"]
+      "@core/*": ["./src/core/*"],
+      "@database/*": ["./src/core/database/*.ts"]
     }
   }
 }

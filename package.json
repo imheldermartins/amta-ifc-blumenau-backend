@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "migrate": "tsx src/core/database/schema-builder.ts"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +22,7 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
-    "squel": "^6.0.7"
+    "squel": "^6.0.7",
+    "ulid": "^3.0.2"
   }
 }

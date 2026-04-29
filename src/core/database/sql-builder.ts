@@ -32,7 +32,7 @@ export class SQLBuilder<T> {
     return String(this.sql?.toString());
   }
 
-  public create(data: Partial<T>): string {
+  public create(data: DefaultValues<T>): string {
     this.sql = squel.insert().into(this.tableName);
 
     const entries = Object.entries(data);

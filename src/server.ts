@@ -1,4 +1,3 @@
-import { getTeste, getTestes } from "@services/teste-service";
+import { teste } from "@/services/workspaces-service";
 
-getTeste();
-getTestes();
+teste();
