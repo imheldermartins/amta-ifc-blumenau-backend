@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  rqlite:
+    build:
+      context: ./rqlite
+    container_name: cubs-rqlite
+    ports:
+      - "8000:4001" # API HTTP
+      - "4002:4002" # Raft Cluster
+    environment:
+      - NODE_ID=${NODE_ID:-1}
+      - RQLITE_HOST=${RQLITE_HOST}
+      - JOIN_NODE=${JOIN_NODE}
+    volumes:
+      - rqlite_data:/rqlite/file
+    restart: unless-stopped
+
+volumes:
+  rqlite_data:
