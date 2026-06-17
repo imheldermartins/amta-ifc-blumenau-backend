@@ -165,6 +165,6 @@ JOIN_NODE=172.29.22.198:8000
 
 ### Validação
 Após as mudanças, ao subir o container na VM, o log deve mostrar:
-`Juntando-se ao cluster pelo líder: http://172.29.22.198:8000`
+`Juntando-se ao cluster pelo líder: 172.29.22.198:8000`
 E o comando `curl http://172.29.22.198:8000/status` (no Líder) deve listar dois nós no campo `nodes`.
 

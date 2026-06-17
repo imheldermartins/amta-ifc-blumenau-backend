@@ -17,11 +17,7 @@ ARGS="-node-id ${NODE_ID} -http-addr ${HTTP_ADDR} -raft-addr ${RAFT_ADDR} -http-
 
 if [ -n "$JOIN_NODE" ]; then
     echo "Modo: WORKER"
-    # Ensure JOIN_NODE includes http:// prefix if not present, and handle the port
-    case $JOIN_NODE in
-        http*) JOIN_ADDR=$JOIN_NODE ;;
-        *) JOIN_ADDR="http://$JOIN_NODE" ;;
-    esac
+    JOIN_ADDR=$JOIN_NODE
     
     echo "Juntando-se ao cluster pelo líder: $JOIN_ADDR"
     ARGS="$ARGS -join $JOIN_ADDR"
