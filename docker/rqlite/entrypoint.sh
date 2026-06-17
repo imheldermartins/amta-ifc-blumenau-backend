@@ -1,6 +1,6 @@
 #!/bin/sh
 
-ADV_IP=${RQLITE_HOST:-$(hostname -i | awk '{print $1}')}
+ADV_IP=${RQLITE_ADVERTISE_IP:-$(hostname -i | awk '{print $1}')}
 
 echo "=== Iniciando Nó rqlite ==="
 echo "IP Anunciado (Advertise IP): $ADV_IP"
@@ -12,13 +12,23 @@ RAFT_ADDR="0.0.0.0:4002"
 HTTP_ADV_ADDR="${ADV_IP}:8000"
 RAFT_ADV_ADDR="${ADV_IP}:4002"
 
-BASE_CMD="rqlited -node-id ${NODE_ID} -http-addr ${HTTP_ADDR} -raft-addr ${RAFT_ADDR} -http-adv-addr ${HTTP_ADV_ADDR} -raft-adv-addr ${RAFT_ADV_ADDR} /rqlite/file"
+# Build arguments list
+ARGS="-node-id ${NODE_ID} -http-addr ${HTTP_ADDR} -raft-addr ${RAFT_ADDR} -http-adv-addr ${HTTP_ADV_ADDR} -raft-adv-addr ${RAFT_ADV_ADDR}"
 
 if [ -n "$JOIN_NODE" ]; then
     echo "Modo: WORKER"
-    echo "Juntando-se ao cluster pelo líder: $JOIN_NODE"
-    exec $BASE_CMD -join "http://${JOIN_NODE}"
+    # Ensure JOIN_NODE includes http:// prefix if not present, and handle the port
+    case $JOIN_NODE in
+        http*) JOIN_ADDR=$JOIN_NODE ;;
+        *) JOIN_ADDR="http://$JOIN_NODE" ;;
+    esac
+    
+    echo "Juntando-se ao cluster pelo líder: $JOIN_ADDR"
+    ARGS="$ARGS -join $JOIN_ADDR"
 else
     echo "Modo: LEADER"
-    exec $BASE_CMD
 fi
+
+# The data directory MUST be the last argument
+echo "Executando: rqlited $ARGS /rqlite/file"
+exec rqlited $ARGS /rqlite/file
