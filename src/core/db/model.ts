@@ -1,5 +1,5 @@
-import { SQLBuilder } from "@database/sql-builder";
-import sql from "@database/shared";
+import { SQLBuilder } from "@db/sql-builder";
+import sql from "@/core/db/shared";
 
 export class Model<T> {
   private sql: SQLBuilder<T> | null = null;

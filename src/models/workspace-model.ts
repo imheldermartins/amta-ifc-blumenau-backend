@@ -1,5 +1,5 @@
-import { Model } from "@database/model";
-import type { WorkspaceSchema } from "@/models/schemas/workspace-schema";
+import { Model } from "@/core/db/model";
+import { type Schema } from "@models/schemas/index";
 
-const workspaces = new Model<WorkspaceSchema>("workspaces");
+const workspaces = new Model<Schema.Workspace>("workspaces");
 export { workspaces };

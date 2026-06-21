@@ -1,6 +1,7 @@
 import sendRequest from "@/utils/sendRequest";
+import { RAFT_URL } from "@/constants/raft_url";
 
-const WORKSPACE_DB_API_URL = "http://localhost:4001";
+const WORKSPACE_DB_API_URL = RAFT_URL;
 
 type Endpoint = 'query' | 'execute' | 'request';
 

@@ -141,7 +141,7 @@ docker compose --env-file ../.env up -d --build
 O erro reportado por Helder foi causado por dois fatores principais:
 
 1.  **Ordem dos Argumentos no `entrypoint.sh`**: O comando `rqlited` exige que o diretório de dados (`/rqlite/file`) seja o **último** argumento. No script original, o parâmetro `-join` estava sendo adicionado após o diretório, o que causava o erro `arguments after data directory (/rqlite/file) are not accepted`.
-2.  **Porta no `JOIN_NODE`**: Ao conectar nós em máquinas diferentes (ou entre WSL e VM), é obrigatório informar a porta exposta (neste projeto, a **8000**). O rqlite não assume automaticamente a porta 8000 se você passar apenas o IP.
+2.  **Porta no `JOIN_NODE`**: Ao conectar nós em máquinas diferentes (ou entre WSL e VM), é obrigatório informar a porta de sincronização Raft (neste projeto, a **4002**). O rqlite não assume automaticamente a porta 4002 se você passar apenas o IP.
 
 ### Mudanças Realizadas:
 -   **`docker/rqlite/entrypoint.sh`**: Refatorado para garantir que os argumentos sejam construídos dinamicamente e que `/rqlite/file` seja sempre o último parâmetro. Também adicionamos uma verificação para garantir o prefixo `http://` no endereço de join.
@@ -168,293 +168,84 @@ Após as mudanças, ao subir o container na VM, o log deve mostrar:
 `Juntando-se ao cluster pelo líder: 172.29.22.198:4002`
 E o comando `curl http://172.29.22.198:8000/status` (no Líder) deve listar dois nós no campo `nodes`.
 
-# Problema na VM
+# Nova Feature proposta
+# Contexto
 
-root@ifcblumenau:~# cd /home/ifcblumenau/cubs-students-ifc-blumenau/docker/
-root@ifcblumenau:/home/ifcblumenau/cubs-students-ifc-blumenau/docker# docker compose --env-file ../.env up -d --build --force-recreate
-WARN[0000] /home/ifcblumenau/cubs-students-ifc-blumenau/docker/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion 
-[+] Building 3.6s (10/10) FINISHED                                                                                                                                                            
- => [internal] load local bake definitions                                                                                                                                               0.0s
- => => reading from stdin 566B                                                                                                                                                           0.0s
- => [internal] load build definition from Dockerfile                                                                                                                                     0.1s
- => => transferring dockerfile: 169B                                                                                                                                                     0.0s
- => [internal] load metadata for docker.io/rqlite/rqlite:latest                                                                                                                          1.4s
- => [internal] load .dockerignore                                                                                                                                                        0.0s
- => => transferring context: 2B                                                                                                                                                          0.0s
- => [internal] load build context                                                                                                                                                        0.0s
- => => transferring context: 35B                                                                                                                                                         0.0s
- => [1/3] FROM docker.io/rqlite/rqlite:latest@sha256:b247f5d1ddf8808f913ac46cc23f596ecaf96312f4d19528747e8b6480e05508                                                                    0.1s
- => => resolve docker.io/rqlite/rqlite:latest@sha256:b247f5d1ddf8808f913ac46cc23f596ecaf96312f4d19528747e8b6480e05508                                                                    0.1s
- => CACHED [2/3] COPY entrypoint.sh /entrypoint.sh                                                                                                                                       0.0s
- => CACHED [3/3] RUN chmod +x /entrypoint.sh                                                                                                                                             0.0s
- => exporting to image                                                                                                                                                                   0.7s
- => => exporting layers                                                                                                                                                                  0.0s
- => => exporting manifest sha256:9636486575e2b0aa6f9ca9ee5d2d67d13b1e7baf74427e062d6d1af2dae9196a                                                                                        0.0s
- => => exporting config sha256:e26f67321c063d2cfec6cbb0dca78b32beb8e4487d8ce25a603cc94eb73e748e                                                                                          0.0s
- => => exporting attestation manifest sha256:4606f4d3141b6a0a440d16fe4ebc7a9cd2bb442648aff771e7e00025c2250e1e                                                                            0.1s
- => => exporting manifest list sha256:996ed6a5e7a1a165440e16da4031982a27dbb50f9c6f2f1e22c3db9c06b8a20a                                                                                   0.1s
- => => naming to docker.io/library/docker-rqlite:latest                                                                                                                                  0.0s
- => => unpacking to docker.io/library/docker-rqlite:latest                                                                                                                               0.2s
- => resolving provenance for metadata file                                                                                                                                               0.0s
-[+] up 3/3
- ✔ Image docker-rqlite       Built                                                                                                                                                        4.0s
- ✔ Volume docker_rqlite_data Created                                                                                                                                                      0.0s
- ✔ Container cubs-rqlite     Started                                                                                                                                                      1.9s
-root@ifcblumenau:/home/ifcblumenau/cubs-students-ifc-blumenau/docker# docker ps
-CONTAINER ID   IMAGE           COMMAND            CREATED         STATUS         PORTS                                                                                      NAMES
-d0d27421aa83   docker-rqlite   "/entrypoint.sh"   8 seconds ago   Up 2 seconds   0.0.0.0:4002->4002/tcp, [::]:4002->4002/tcp, 0.0.0.0:8000->4001/tcp, [::]:8000->4001/tcp   cubs-rqlite
-root@ifcblumenau:/home/ifcblumenau/cubs-students-ifc-blumenau/docker# docker ps
-CONTAINER ID   IMAGE           COMMAND            CREATED          STATUS                         PORTS     NAMES
-d0d27421aa83   docker-rqlite   "/entrypoint.sh"   16 seconds ago   Restarting (1) 2 seconds ago             cubs-rqlite
-root@ifcblumenau:/home/ifcblumenau/cubs-students-ifc-blumenau/docker# docker logs cubs-rqlite
-=== Iniciando Nó rqlite ===
-IP Anunciado (Advertise IP): 192.168.56.101
-Modo: WORKER
-Juntando-se ao cluster pelo líder: 172.29.22.198:8000
-Executando: rqlited -node-id 2 -http-addr 0.0.0.0:4001 -raft-addr 0.0.0.0:4002 -http-adv-addr 192.168.56.101:8000 -raft-adv-addr 192.168.56.101:4002 -join 172.29.22.198:8000 /rqlite/file
+Antes de qualquer alteração, leia o arquivo `@GEMINI.md` para compreender a arquitetura, os objetivos do projeto, os padrões adotados e as funcionalidades existentes. Utilize essas informações como contexto durante toda a execução da tarefa.
 
-            _ _ _
-           | (_) |
-  _ __ __ _| |_| |_ ___
- | '__/ _  | | | __/ _ \   The lightweight, fault-tolerant,
- | | | (_| | | | ||  __/   relational database.
- |_|  \__, |_|_|\__\___|
-         | |               www.rqlite.io
-         |_|
+## Objetivo
 
-[rqlited] 2026/06/17 22:45:51 rqlited starting, version v10.2.0, SQLite 3.53.0, commit 6809aa3b6f373b86aa4e1265b9c47bf5d09e1819, compiler (toolchain) gc, compiler (command) musl-gcc
-[rqlited] 2026/06/17 22:45:51 go1.26.3, target architecture is amd64, operating system target is linux
-[rqlited] 2026/06/17 22:45:51 launch command: rqlited -node-id 2 -http-addr 0.0.0.0:4001 -raft-addr 0.0.0.0:4002 -http-adv-addr 192.168.56.101:8000 -raft-adv-addr 192.168.56.101:4002 -join 172.29.22.198:8000 /rqlite/file
-[rqlited] 2026/06/17 22:45:51 no preexisting node state detected in /rqlite/file, node may be bootstrapping
-[cluster] 2026/06/17 22:45:51 service listening on 192.168.56.101:4002
-[http] 2026/06/17 22:45:51 execute queue processing started with capacity 1024, batch size 128, timeout 50ms
-[http] 2026/06/17 22:45:51 service listening on [::]:4001
-[store] 2026/06/17 22:45:51 opening store with node ID 2, listening on 192.168.56.101:4002
-[store] 2026/06/17 22:45:51 ensuring data directory exists at /rqlite/file
-[mux] 2026/06/17 22:45:51 mux serving on [::]:4002, advertising 192.168.56.101:4002
-[store] 2026/06/17 22:45:51 old v7 snapshot directory does not exist at /rqlite/file/snapshots, nothing to upgrade
-[store] 2026/06/17 22:45:51 old v8 snapshot directory does not exist at /rqlite/file/rsnapshots, nothing to upgrade
-[snapshot-store] 2026/06/17 22:45:51 store initialized using /rqlite/file/wsnapshots
-[store] 2026/06/17 22:45:51 0 preexisting snapshots present
-[store] 2026/06/17 22:45:51 raft log is 0 bytes at open, no entries present
-[rqlited] 2026/06/17 22:45:51 checking that supplied join addresses don't serve HTTP(S)
-[rqlited] 2026/06/17 22:45:51 clustering failure: join address 172.29.22.198:8000 appears to be serving HTTP when it should be Raft
-=== Iniciando Nó rqlite ===
-IP Anunciado (Advertise IP): 192.168.56.101
-Modo: WORKER
-Juntando-se ao cluster pelo líder: 172.29.22.198:8000
-Executando: rqlited -node-id 2 -http-addr 0.0.0.0:4001 -raft-addr 0.0.0.0:4002 -http-adv-addr 192.168.56.101:8000 -raft-adv-addr 192.168.56.101:4002 -join 172.29.22.198:8000 /rqlite/file
+Quero evoluir o mecanismo de migrations localizado em `src/core/database/schema-builder`.
 
-            _ _ _
-           | (_) |
-  _ __ __ _| |_| |_ ___
- | '__/ _  | | | __/ _ \   The lightweight, fault-tolerant,
- | | | (_| | | | ||  __/   relational database.
- |_|  \__, |_|_|\__\___|
-         | |               www.rqlite.io
-         |_|
+Atualmente existe uma implementação estática utilizada pelo comando `migrate` definido no `package.json`. Essa implementação foi criada como um experimento para validar a integração com o rqlite e serve apenas como ponto de partida.
 
-[rqlited] 2026/06/17 22:45:54 rqlited starting, version v10.2.0, SQLite 3.53.0, commit 6809aa3b6f373b86aa4e1265b9c47bf5d09e1819, compiler (toolchain) gc, compiler (command) musl-gcc
-[rqlited] 2026/06/17 22:45:54 go1.26.3, target architecture is amd64, operating system target is linux
-[rqlited] 2026/06/17 22:45:54 launch command: rqlited -node-id 2 -http-addr 0.0.0.0:4001 -raft-addr 0.0.0.0:4002 -http-adv-addr 192.168.56.101:8000 -raft-adv-addr 192.168.56.101:4002 -join 172.29.22.198:8000 /rqlite/file
-[mux] 2026/06/17 22:45:54 mux serving on [::]:4002, advertising 192.168.56.101:4002
-[rqlited] 2026/06/17 22:45:54 preexisting node state detected in /rqlite/file
-[cluster] 2026/06/17 22:45:54 service listening on 192.168.56.101:4002
-[http] 2026/06/17 22:45:54 execute queue processing started with capacity 1024, batch size 128, timeout 50ms
-[http] 2026/06/17 22:45:54 service listening on [::]:4001
-[store] 2026/06/17 22:45:54 opening store with node ID 2, listening on 192.168.56.101:4002
-[store] 2026/06/17 22:45:54 ensuring data directory exists at /rqlite/file
-[store] 2026/06/17 22:45:54 old v7 snapshot directory does not exist at /rqlite/file/snapshots, nothing to upgrade
-[store] 2026/06/17 22:45:54 old v8 snapshot directory does not exist at /rqlite/file/rsnapshots, nothing to upgrade
-[snapshot-store] 2026/06/17 22:45:54 store initialized using /rqlite/file/wsnapshots
-[store] 2026/06/17 22:45:54 0 preexisting snapshots present
-[store] 2026/06/17 22:45:54 raft log is 33 kB, first index is 0, last index is 0
-[rqlited] 2026/06/17 22:45:54 checking that supplied join addresses don't serve HTTP(S)
-[rqlited] 2026/06/17 22:45:54 clustering failure: join address 172.29.22.198:8000 appears to be serving HTTP when it should be Raft
-=== Iniciando Nó rqlite ===
-IP Anunciado (Advertise IP): 192.168.56.101
-Modo: WORKER
-Juntando-se ao cluster pelo líder: 172.29.22.198:8000
-Executando: rqlited -node-id 2 -http-addr 0.0.0.0:4001 -raft-addr 0.0.0.0:4002 -http-adv-addr 192.168.56.101:8000 -raft-adv-addr 192.168.56.101:4002 -join 172.29.22.198:8000 /rqlite/file
+O objetivo agora é transformá-la em uma solução mais estruturada, extensível e próxima de um sistema de migrations real.
 
-            _ _ _
-           | (_) |
-  _ __ __ _| |_| |_ ___
- | '__/ _  | | | __/ _ \   The lightweight, fault-tolerant,
- | | | (_| | | | ||  __/   relational database.
- |_|  \__, |_|_|\__\___|
-         | |               www.rqlite.io
-         |_|
+## Problema atual
 
-[rqlited] 2026/06/17 22:45:57 rqlited starting, version v10.2.0, SQLite 3.53.0, commit 6809aa3b6f373b86aa4e1265b9c47bf5d09e1819, compiler (toolchain) gc, compiler (command) musl-gcc
-[rqlited] 2026/06/17 22:45:57 go1.26.3, target architecture is amd64, operating system target is linux
-[rqlited] 2026/06/17 22:45:57 launch command: rqlited -node-id 2 -http-addr 0.0.0.0:4001 -raft-addr 0.0.0.0:4002 -http-adv-addr 192.168.56.101:8000 -raft-adv-addr 192.168.56.101:4002 -join 172.29.22.198:8000 /rqlite/file
-[rqlited] 2026/06/17 22:45:57 preexisting node state detected in /rqlite/file
-[cluster] 2026/06/17 22:45:57 service listening on 192.168.56.101:4002
-[http] 2026/06/17 22:45:57 execute queue processing started with capacity 1024, batch size 128, timeout 50ms
-[http] 2026/06/17 22:45:57 service listening on [::]:4001
-[store] 2026/06/17 22:45:57 opening store with node ID 2, listening on 192.168.56.101:4002
-[store] 2026/06/17 22:45:57 ensuring data directory exists at /rqlite/file
-[store] 2026/06/17 22:45:57 old v7 snapshot directory does not exist at /rqlite/file/snapshots, nothing to upgrade
-[store] 2026/06/17 22:45:57 old v8 snapshot directory does not exist at /rqlite/file/rsnapshots, nothing to upgrade
-[snapshot-store] 2026/06/17 22:45:57 store initialized using /rqlite/file/wsnapshots
-[store] 2026/06/17 22:45:57 0 preexisting snapshots present
-[mux] 2026/06/17 22:45:57 mux serving on [::]:4002, advertising 192.168.56.101:4002
-[store] 2026/06/17 22:45:57 raft log is 33 kB, first index is 0, last index is 0
-[rqlited] 2026/06/17 22:45:57 checking that supplied join addresses don't serve HTTP(S)
-[rqlited] 2026/06/17 22:45:57 clustering failure: join address 172.29.22.198:8000 appears to be serving HTTP when it should be Raft
-=== Iniciando Nó rqlite ===
-IP Anunciado (Advertise IP): 192.168.56.101
-Modo: WORKER
-Juntando-se ao cluster pelo líder: 172.29.22.198:8000
-Executando: rqlited -node-id 2 -http-addr 0.0.0.0:4001 -raft-addr 0.0.0.0:4002 -http-adv-addr 192.168.56.101:8000 -raft-adv-addr 192.168.56.101:4002 -join 172.29.22.198:8000 /rqlite/file
+Hoje o processo consiste basicamente em:
 
-            _ _ _
-           | (_) |
-  _ __ __ _| |_| |_ ___
- | '__/ _  | | | __/ _ \   The lightweight, fault-tolerant,
- | | | (_| | | | ||  __/   relational database.
- |_|  \__, |_|_|\__\___|
-         | |               www.rqlite.io
-         |_|
+* ler um arquivo `migration.sql`;
+* enviar seu conteúdo ao rqlite;
+* executar os comandos SQL;
+* registrar apenas sucesso ou falha.
 
-[rqlited] 2026/06/17 22:46:00 rqlited starting, version v10.2.0, SQLite 3.53.0, commit 6809aa3b6f373b86aa4e1265b9c47bf5d09e1819, compiler (toolchain) gc, compiler (command) musl-gcc
-[rqlited] 2026/06/17 22:46:00 go1.26.3, target architecture is amd64, operating system target is linux
-[rqlited] 2026/06/17 22:46:00 launch command: rqlited -node-id 2 -http-addr 0.0.0.0:4001 -raft-addr 0.0.0.0:4002 -http-adv-addr 192.168.56.101:8000 -raft-adv-addr 192.168.56.101:4002 -join 172.29.22.198:8000 /rqlite/file
-[rqlited] 2026/06/17 22:46:00 preexisting node state detected in /rqlite/file
-[cluster] 2026/06/17 22:46:00 service listening on 192.168.56.101:4002
-[http] 2026/06/17 22:46:00 execute queue processing started with capacity 1024, batch size 128, timeout 50ms
-[http] 2026/06/17 22:46:00 service listening on [::]:4001
-[store] 2026/06/17 22:46:00 opening store with node ID 2, listening on 192.168.56.101:4002
-[store] 2026/06/17 22:46:00 ensuring data directory exists at /rqlite/file
-[store] 2026/06/17 22:46:00 old v7 snapshot directory does not exist at /rqlite/file/snapshots, nothing to upgrade
-[store] 2026/06/17 22:46:00 old v8 snapshot directory does not exist at /rqlite/file/rsnapshots, nothing to upgrade
-[snapshot-store] 2026/06/17 22:46:00 store initialized using /rqlite/file/wsnapshots
-[store] 2026/06/17 22:46:00 0 preexisting snapshots present
-[mux] 2026/06/17 22:46:00 mux serving on [::]:4002, advertising 192.168.56.101:4002
-[store] 2026/06/17 22:46:00 raft log is 33 kB, first index is 0, last index is 0
-[rqlited] 2026/06/17 22:46:00 checking that supplied join addresses don't serve HTTP(S)
-[rqlited] 2026/06/17 22:46:00 clustering failure: join address 172.29.22.198:8000 appears to be serving HTTP when it should be Raft
-=== Iniciando Nó rqlite ===
-IP Anunciado (Advertise IP): 192.168.56.101
-Modo: WORKER
-Juntando-se ao cluster pelo líder: 172.29.22.198:8000
-Executando: rqlited -node-id 2 -http-addr 0.0.0.0:4001 -raft-addr 0.0.0.0:4002 -http-adv-addr 192.168.56.101:8000 -raft-adv-addr 192.168.56.101:4002 -join 172.29.22.198:8000 /rqlite/file
+Essa abordagem funciona, porém possui pouca escalabilidade e não permite controle de versões, histórico ou evolução das migrations.
 
-            _ _ _
-           | (_) |
-  _ __ __ _| |_| |_ ___
- | '__/ _  | | | __/ _ \   The lightweight, fault-tolerant,
- | | | (_| | | | ||  __/   relational database.
- |_|  \__, |_|_|\__\___|
-         | |               www.rqlite.io
-         |_|
+## Objetivos da nova arquitetura
 
-[rqlited] 2026/06/17 22:46:03 rqlited starting, version v10.2.0, SQLite 3.53.0, commit 6809aa3b6f373b86aa4e1265b9c47bf5d09e1819, compiler (toolchain) gc, compiler (command) musl-gcc
-[rqlited] 2026/06/17 22:46:03 go1.26.3, target architecture is amd64, operating system target is linux
-[rqlited] 2026/06/17 22:46:03 launch command: rqlited -node-id 2 -http-addr 0.0.0.0:4001 -raft-addr 0.0.0.0:4002 -http-adv-addr 192.168.56.101:8000 -raft-adv-addr 192.168.56.101:4002 -join 172.29.22.198:8000 /rqlite/file
-[mux] 2026/06/17 22:46:03 mux serving on [::]:4002, advertising 192.168.56.101:4002
-[rqlited] 2026/06/17 22:46:03 preexisting node state detected in /rqlite/file
-[cluster] 2026/06/17 22:46:03 service listening on 192.168.56.101:4002
-[http] 2026/06/17 22:46:03 execute queue processing started with capacity 1024, batch size 128, timeout 50ms
-[http] 2026/06/17 22:46:03 service listening on [::]:4001
-[store] 2026/06/17 22:46:03 opening store with node ID 2, listening on 192.168.56.101:4002
-[store] 2026/06/17 22:46:03 ensuring data directory exists at /rqlite/file
-[store] 2026/06/17 22:46:03 old v7 snapshot directory does not exist at /rqlite/file/snapshots, nothing to upgrade
-[store] 2026/06/17 22:46:03 old v8 snapshot directory does not exist at /rqlite/file/rsnapshots, nothing to upgrade
-[snapshot-store] 2026/06/17 22:46:03 store initialized using /rqlite/file/wsnapshots
-[store] 2026/06/17 22:46:03 0 preexisting snapshots present
-[store] 2026/06/17 22:46:03 raft log is 33 kB, first index is 0, last index is 0
-[rqlited] 2026/06/17 22:46:03 checking that supplied join addresses don't serve HTTP(S)
-[rqlited] 2026/06/17 22:46:03 clustering failure: join address 172.29.22.198:8000 appears to be serving HTTP when it should be Raft
-=== Iniciando Nó rqlite ===
-IP Anunciado (Advertise IP): 192.168.56.101
-Modo: WORKER
-Juntando-se ao cluster pelo líder: 172.29.22.198:8000
-Executando: rqlited -node-id 2 -http-addr 0.0.0.0:4001 -raft-addr 0.0.0.0:4002 -http-adv-addr 192.168.56.101:8000 -raft-adv-addr 192.168.56.101:4002 -join 172.29.22.198:8000 /rqlite/file
+Gostaria que fosse proposta uma arquitetura para migrations baseada em classes TypeScript.
 
-            _ _ _
-           | (_) |
-  _ __ __ _| |_| |_ ___
- | '__/ _  | | | __/ _ \   The lightweight, fault-tolerant,
- | | | (_| | | | ||  __/   relational database.
- |_|  \__, |_|_|\__\___|
-         | |               www.rqlite.io
-         |_|
+Algumas diretrizes:
 
-[rqlited] 2026/06/17 22:46:06 rqlited starting, version v10.2.0, SQLite 3.53.0, commit 6809aa3b6f373b86aa4e1265b9c47bf5d09e1819, compiler (toolchain) gc, compiler (command) musl-gcc
-[rqlited] 2026/06/17 22:46:06 go1.26.3, target architecture is amd64, operating system target is linux
-[rqlited] 2026/06/17 22:46:06 launch command: rqlited -node-id 2 -http-addr 0.0.0.0:4001 -raft-addr 0.0.0.0:4002 -http-adv-addr 192.168.56.101:8000 -raft-adv-addr 192.168.56.101:4002 -join 172.29.22.198:8000 /rqlite/file
-[rqlited] 2026/06/17 22:46:06 preexisting node state detected in /rqlite/file
-[cluster] 2026/06/17 22:46:06 service listening on 192.168.56.101:4002
-[http] 2026/06/17 22:46:06 execute queue processing started with capacity 1024, batch size 128, timeout 50ms
-[http] 2026/06/17 22:46:06 service listening on [::]:4001
-[store] 2026/06/17 22:46:06 opening store with node ID 2, listening on 192.168.56.101:4002
-[store] 2026/06/17 22:46:06 ensuring data directory exists at /rqlite/file
-[mux] 2026/06/17 22:46:06 mux serving on [::]:4002, advertising 192.168.56.101:4002
-[store] 2026/06/17 22:46:06 old v7 snapshot directory does not exist at /rqlite/file/snapshots, nothing to upgrade
-[store] 2026/06/17 22:46:06 old v8 snapshot directory does not exist at /rqlite/file/rsnapshots, nothing to upgrade
-[snapshot-store] 2026/06/17 22:46:06 store initialized using /rqlite/file/wsnapshots
-[store] 2026/06/17 22:46:06 0 preexisting snapshots present
-[store] 2026/06/17 22:46:06 raft log is 33 kB, first index is 0, last index is 0
-[rqlited] 2026/06/17 22:46:06 checking that supplied join addresses don't serve HTTP(S)
-[rqlited] 2026/06/17 22:46:06 clustering failure: join address 172.29.22.198:8000 appears to be serving HTTP when it should be Raft
-=== Iniciando Nó rqlite ===
-IP Anunciado (Advertise IP): 192.168.56.101
-Modo: WORKER
-Juntando-se ao cluster pelo líder: 172.29.22.198:8000
-Executando: rqlited -node-id 2 -http-addr 0.0.0.0:4001 -raft-addr 0.0.0.0:4002 -http-adv-addr 192.168.56.101:8000 -raft-adv-addr 192.168.56.101:4002 -join 172.29.22.198:8000 /rqlite/file
+* criar uma tabela `_migrations` para controle das migrations executadas;
+* utilizar versionamento simples (um inteiro incremental é suficiente);
+* cada migration deve ser representada por uma classe;
+* estudar uma hierarquia baseada em herança ou abstrações para reutilização de comportamento comum;
+* a classe deve ser responsável por gerar os comandos SQL necessários ao SQLite/rqlite, evitando depender de um único arquivo `migration.sql`;
+* pensar na solução considerando futuras alterações de schema, upgrades e manutenção.
 
-            _ _ _
-           | (_) |
-  _ __ __ _| |_| |_ ___
- | '__/ _  | | | __/ _ \   The lightweight, fault-tolerant,
- | | | (_| | | | ||  __/   relational database.
- |_|  \__, |_|_|\__\___|
-         | |               www.rqlite.io
-         |_|
+Também gostaria que o retorno da execução fosse tipado, permitindo identificar:
 
-[rqlited] 2026/06/17 22:46:11 rqlited starting, version v10.2.0, SQLite 3.53.0, commit 6809aa3b6f373b86aa4e1265b9c47bf5d09e1819, compiler (toolchain) gc, compiler (command) musl-gcc
-[rqlited] 2026/06/17 22:46:11 go1.26.3, target architecture is amd64, operating system target is linux
-[rqlited] 2026/06/17 22:46:11 launch command: rqlited -node-id 2 -http-addr 0.0.0.0:4001 -raft-addr 0.0.0.0:4002 -http-adv-addr 192.168.56.101:8000 -raft-adv-addr 192.168.56.101:4002 -join 172.29.22.198:8000 /rqlite/file
-[rqlited] 2026/06/17 22:46:11 preexisting node state detected in /rqlite/file
-[cluster] 2026/06/17 22:46:11 service listening on 192.168.56.101:4002
-[mux] 2026/06/17 22:46:11 mux serving on [::]:4002, advertising 192.168.56.101:4002
-[http] 2026/06/17 22:46:11 execute queue processing started with capacity 1024, batch size 128, timeout 50ms
-[http] 2026/06/17 22:46:11 service listening on [::]:4001
-[store] 2026/06/17 22:46:11 opening store with node ID 2, listening on 192.168.56.101:4002
-[store] 2026/06/17 22:46:11 ensuring data directory exists at /rqlite/file
-[store] 2026/06/17 22:46:11 old v7 snapshot directory does not exist at /rqlite/file/snapshots, nothing to upgrade
-[store] 2026/06/17 22:46:11 old v8 snapshot directory does not exist at /rqlite/file/rsnapshots, nothing to upgrade
-[snapshot-store] 2026/06/17 22:46:11 store initialized using /rqlite/file/wsnapshots
-[store] 2026/06/17 22:46:11 0 preexisting snapshots present
-[store] 2026/06/17 22:46:11 raft log is 33 kB, first index is 0, last index is 0
-[rqlited] 2026/06/17 22:46:11 checking that supplied join addresses don't serve HTTP(S)
-[rqlited] 2026/06/17 22:46:11 clustering failure: join address 172.29.22.198:8000 appears to be serving HTTP when it should be Raft
-root@ifcblumenau:/home/ifcblumenau/cubs-students-ifc-blumenau/docker# ls
-docker-compose.yml  rqlite
-root@ifcblumenau:/home/ifcblumenau/cubs-students-ifc-blumenau/docker# cd rqlite/
-root@ifcblumenau:/home/ifcblumenau/cubs-students-ifc-blumenau/docker/rqlite# ls
-Dockerfile  entrypoint.sh
-root@ifcblumenau:/home/ifcblumenau/cubs-students-ifc-blumenau/docker/rqlite# docker exec -it cubs-rqlite rqlite
-Error response from daemon: Container d0d27421aa83e4c8eb6a32a4b2deeb025ad68852f1c1547b85305f57cb544545 is restarting, wait until the container is running
+* migration executada;
+* versão aplicada;
+* sucesso ou falha;
+* alterações realizadas (quando aplicável);
+* informações úteis para logging e futuras automações.
 
+## Liberdade para propor melhorias
 
----
+Caso durante a análise você identifique uma arquitetura mais adequada do que a descrita acima, apresente a proposta antes de implementá-la.
 
-# Configuração do Rqlite
+Prefiro uma solução consistente e extensível do que simplesmente reproduzir a ideia inicial.
 
-# [RQLITE_ADVERTISE_IP]
-# - Em DEV local na mesma máquina: Pode deixar vazio. O container pegará seu próprio IP interno (172.x.x.x)
-# - Em DEV (múltiplas máquinas) ou PROD: Coloque o IP externo/roteável da máquina.
-RQLITE_ADVERTISE_IP=192.168.56.101 
+## Restrições importantes
 
-# [NODE_ID]
-# ID único do nó no cluster Raft.
-# Se for subir um cluster, garanta que cada máquina tenha um NODE_ID diferente (1, 2, 3...)
-NODE_ID=2
+* Não execute alterações automaticamente.
+* Solicite minha aprovação antes de:
 
-# [JOIN_NODE]
-# - Se este for o nó LÍDER: Deixe em branco.
-# - Se este nó for um WORKER: Informe o IP_DO_LIDER:PORTA_HTTP (Ex: 192.168.0.10:8000) para se juntar ao cluster.
-JOIN_NODE=172.29.22.198:4002
+  * criar arquivos;
+  * remover arquivos;
+  * mover arquivos;
+  * alterar arquitetura;
+  * modificar APIs públicas;
+  * alterar contratos existentes;
+  * editar configurações do projeto.
+* Sempre explique o motivo da alteração antes de solicitar aprovação.
+
+## Documentação
+
+Ao finalizar a implementação, atualize o `GEMINI.md` acrescentando uma nova seção **no final do arquivo** contendo:
+
+* resumo das alterações realizadas;
+* justificativas arquiteturais;
+* decisões tomadas;
+* pontos que ainda precisam ser validados.
+
+Essa seção deve ser claramente marcada como:
+
+> **EXPERIMENTAL / EM TESTE**
+
+Informe também que todo o conteúdo adicionado a partir dessa marca poderá ser revisado, alterado ou removido caso os testes indiquem necessidade de ajustes.
+
+Não modifique nenhuma parte anterior do `GEMINI.md`; apenas acrescente essa nova seção ao final do arquivo.
