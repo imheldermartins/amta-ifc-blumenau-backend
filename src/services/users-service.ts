@@ -1,13 +1,27 @@
 import db from "@models/index";
 
+export async function createUser() {
+  try {
+    return await db.users
+      .create({
+        name: "Helder",
+        email: "helder@gmail.com"
+      });
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(`[${error.cause}] ${error.message}`);
+    }
+    return null;
+  }
+}
+
 export async function getUser() {
   try {
-    await db.users
+    return await db.users
       .find({
-        id: "1",
-        email: "helder",
-      })
-      .then(console.log);
+        id: '01KVNJRVJHT5GTHRZGM7ZPZPWT'
+        // email: "helder@gmail.com"
+      });
 
     // await db.users
     //   .create({
@@ -48,5 +62,6 @@ export async function getUser() {
     if (error instanceof Error) {
       console.error(`[${error.cause}] ${error.message}`);
     }
+    return null;
   }
 }

@@ -5,6 +5,7 @@
   "main": "src/server.ts",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "start:dev": "tsx src/server.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "migrate:create": "tsx --env-file=.env src/core/scripts/create-migration.ts",

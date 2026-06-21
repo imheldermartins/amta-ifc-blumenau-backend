@@ -6,7 +6,7 @@
  * @property {Date} updatedAt - A data da última atualização da entidade
  */
 export interface EntityBase {
-  id: string;
-  createdAt: Date;
-  updatedAt: Date;
+  id: NonEmptyString;
+  created_at: Date;
+  updated_at: Date;
 };

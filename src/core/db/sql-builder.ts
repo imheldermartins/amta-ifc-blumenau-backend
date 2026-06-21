@@ -28,16 +28,14 @@ export class SQLBuilder<T> {
 
   public raw(): string {
     if (!this.sql) this.sqlError("SQL is not defined.");
-
     return String(this.sql?.toString());
   }
 
-  public create(data: DefaultValues<T>): string {
+  public create(data: CreateValues<T>): string {
     this.sql = squel.insert().into(this.tableName);
 
     const entries = Object.entries(data);
-
-    if (entries.length === 0) this.sqlError("Entries is empty. There is no lookups.");
+    if (entries.length === 0) this.sqlError("Entries is empty. There is no values to create.");
 
     entries.forEach(([key, value]) => {
       this.sql?.set(key, value);
@@ -50,60 +48,53 @@ export class SQLBuilder<T> {
     this.sql = squel.select().from(this.tableName);
 
     if (lookup && Object.keys(lookup).filter(key => !(['where', 'limit'].includes(key))).length > 0) {
-      
+
       const tempLookup = { ...lookup };
       if ('where' in tempLookup) delete tempLookup.where;
       if ('limit' in tempLookup) delete tempLookup.limit;
 
-      const entries = Object.entries(tempLookup);
-
-      if (entries.length === 0)
-        this.sqlError("Entries is empty. There is no lookups.");
-
-      entries.forEach(([key, value]) => {
+      Object.entries(tempLookup).forEach(([key, value]) => {
         const formattedValue = typeof value === 'string' ? `'${value}'` : value;
-        
         this.sql.where(`${key} = ${formattedValue}`);
       });
     }
 
     this.prepareLookupEntries(lookup?.where ?? {});
-    
+
     if (lookup?.limit) this.sql.limit(lookup.limit);
 
     return String(this.sql?.toString());
   }
 
-  public update(data: LookupsConfig<T>): string {
+  public update(values: UpdateValues<T>, lookup: LookupValues<T>): string {
     this.sql = squel.update().table(this.tableName);
 
-    if (!data?.id && !data.where) this.sqlError('Missing Parameters');
-    
-    const entries = Object.entries(data);
-    
-    if (entries.length === 0)
-      this.sqlError("Entries is empty. There is no lookups.");
+    const valueEntries = Object.entries(values ?? {});
+    if (valueEntries.length === 0) this.sqlError("Entries is empty. There is no values to update.");
 
-    entries.forEach(([key, value]) => {
+    valueEntries.forEach(([key, value]) => {
       this.sql?.set(key, value);
     });
 
-    this.sql?.where('id', data.id)
+    const lookupEntries = Object.entries(lookup ?? {});
+    if (lookupEntries.length === 0) this.sqlError("Missing lookup. Update requires at least one criterion.");
+
+    lookupEntries.forEach(([key, value]) => {
+      const formattedValue = typeof value === 'string' ? `'${value}'` : value;
+      this.sql?.where(`${key} = ${formattedValue}`);
+    });
 
     return String(this.sql?.toString());
   }
 
-  public delete(lookup: DefaultValues<T>): string {
+  public delete(lookup: LookupValues<T>): string {
     this.sql = squel.delete().from(this.tableName);
 
     const entries = Object.entries(lookup);
-
-    if (entries.length === 0) 
-      this.sqlError('Missing Parameters');
+    if (entries.length === 0) this.sqlError('Missing Parameters');
 
     entries.forEach(([key, value]) => {
       const formattedValue = typeof value === "string" ? `'${value}'` : value;
-
       this.sql.where(`${key} = ${formattedValue}`);
     });
 

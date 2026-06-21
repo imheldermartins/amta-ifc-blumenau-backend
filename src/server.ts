@@ -1,3 +1,6 @@
-import { teste } from "@/services/workspaces-service";
+import { createUser, getUser } from "@/services/users-service";
 
-teste();
+(async () => {
+    // await createUser().then(u => console.log(`CreateUser::`, u));
+  await getUser().then(u => console.log(`FindUser::`, u));
+})();
