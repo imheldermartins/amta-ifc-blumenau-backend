@@ -1,6 +1,15 @@
-import { createUser, getUser } from "@/services/users-service";
+import express from "express";
+import userRoutes from "@routes/user-route";
 
-(async () => {
-    // await createUser().then(u => console.log(`CreateUser::`, u));
-  await getUser().then(u => console.log(`FindUser::`, u));
-})();
+const app = express();
+const PORT = process.env.PORT ?? 3000;
+
+// express.json() só faz parse do body — não é middleware de validação/auth,
+// sem ele req.body chega undefined em POST/PUT.
+app.use(express.json());
+
+app.use("/users", userRoutes);
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});

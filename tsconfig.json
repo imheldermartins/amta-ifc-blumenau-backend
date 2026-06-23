@@ -23,9 +23,10 @@
     "paths": {
       "@/*": ["./src/*.ts"],
       "@models/*": ["./src/models/*.ts"],
-      "@services/*": ["./src/services/*.ts"],
+      "@controllers/*": ["./src/controllers/*.ts"],
       "@db/*": ["./src/core/db/*.ts"],
-      "@core/*": ["./src/core/*"],
+      "@core/*": ["./src/core/*.ts"],
+      "@routes/*": ["./src/routes/*.ts"],
       "@public/*": ["./public/*"]
     }
   },

@@ -9,4 +9,5 @@ export interface EntityBase {
   id: NonEmptyString;
   created_at: Date;
   updated_at: Date;
+  // deleted_at?: Date; // Campo opcional para soft delete, caso seja necessário no futuro
 };
