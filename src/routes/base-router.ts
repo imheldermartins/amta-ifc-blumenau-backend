@@ -1,29 +1,46 @@
-import { Router, type Request, type Response } from "express";
+import { Router, type Request, type Response, type RequestHandler } from "express";
+
+export type RouteOperation = "all" | "get" | "create" | "update" | "delete";
+export type RouteMiddlewares = Partial<Record<RouteOperation, RequestHandler[]>>;
 
 /**
  * Abstrai o mapeamento HTTP <-> IBaseController<T> que se repetia em cada
  * arquivo de rota. Uma resource router concreta só precisa:
- *   1. dizer qual controller usar (via super(controller) no construtor)
+ *   1. dizer qual controller usar (via super(controller, middlewares) no construtor)
  *   2. dizer o nome do recurso (pras mensagens de erro)
- *   3. opcionalmente sobrescrever um dos 5 métodos pra regra específica
+ *   3. opcionalmente passar middlewares por operação (ex: proteger create/update/delete)
+ *   4. opcionalmente sobrescrever um dos 5 métodos pra regra específica
  *      (ex: validação de campo), chamando super.<metodo>() pra reaproveitar
  *      o resto do fluxo.
+ *
+ * IMPORTANTE: os middlewares são recebidos via parâmetro de construtor, não
+ * como campo de classe na subclasse -- campo de classe da subclasse só é
+ * inicializado DEPOIS que o super() retorna, e registerRoutes() já roda
+ * dentro do super(). Passando por parâmetro, o valor já está disponível
+ * antes das rotas serem registradas.
  */
 export abstract class BaseRouter<T> {
   public readonly router: Router;
   protected abstract readonly resourceName: string;
 
-  constructor(protected readonly controller: IBaseController<T>) {
+  constructor(
+    protected readonly controller: IBaseController<T>,
+    private readonly middlewares: RouteMiddlewares = {},
+  ) {
     this.router = Router();
     this.registerRoutes();
   }
 
   protected registerRoutes(): void {
-    this.router.get("/", this.all.bind(this));
-    this.router.get("/:id", this.get.bind(this));
-    this.router.post("/", this.create.bind(this));
-    this.router.put("/:id", this.update.bind(this));
-    this.router.delete("/:id", this.delete.bind(this));
+    this.router.get("/", ...this.middlewaresFor("all"), this.all.bind(this));
+    this.router.get("/:id", ...this.middlewaresFor("get"), this.get.bind(this));
+    this.router.post("/", ...this.middlewaresFor("create"), this.create.bind(this));
+    this.router.put("/:id", ...this.middlewaresFor("update"), this.update.bind(this));
+    this.router.delete("/:id", ...this.middlewaresFor("delete"), this.delete.bind(this));
+  }
+
+  private middlewaresFor(operation: RouteOperation): RequestHandler[] {
+    return this.middlewares[operation] ?? [];
   }
 
   protected async all(_req: Request, res: Response): Promise<Response> {

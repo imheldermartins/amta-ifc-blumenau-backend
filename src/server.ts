@@ -1,15 +1,13 @@
-import express from "express";
-import userRoutes from "@routes/user-route";
+import HttpServer from "@core/http/http-server";
+import authRouter from "@/core/auth/auth-router";
+import userRouter from "@routes/user-route";
 
-const app = express();
-const PORT = process.env.PORT ?? 3000;
+const server = new HttpServer([
+  { path: "/users", router: userRouter },
+  { path: "/auth", router: authRouter },
+]);
 
-// express.json() só faz parse do body — não é middleware de validação/auth,
-// sem ele req.body chega undefined em POST/PUT.
-app.use(express.json());
+// Ponto de extensão pra middleware global (logging, etc.) -- chame antes de start():
+// server.use(someMiddleware);
 
-app.use("/users", userRoutes);
-
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+server.start();

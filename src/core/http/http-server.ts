@@ -1,6 +1,8 @@
 import express, { type Express, type Router, type RequestHandler } from "express";
 import { corsConfig } from "@core/http/cors.config";
 import cors from "cors";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "@core/http/swagger.config";
 
 export interface ServerRoute {
   path: string;
@@ -15,7 +17,7 @@ export interface ServerRoute {
  * do express dentro de start(), então qualquer middleware adicionado antes
  * (auth, logging, rate-limit, etc.) sempre roda antes dos handlers de rota.
  */
-class HttpServer {
+export default class HttpServer {
   private readonly app: Express;
   private readonly port: number;
   private readonly routes: ServerRoute[];
@@ -31,6 +33,7 @@ class HttpServer {
   private setupGlobalMiddlewares(): void {
     this.app.use(cors(corsConfig));
     this.app.use(express.json());
+    this.app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   }
 
   public use(...middlewares: RequestHandler[]): this {
@@ -52,5 +55,3 @@ class HttpServer {
     });
   }
 }
-
-export default HttpServer;
